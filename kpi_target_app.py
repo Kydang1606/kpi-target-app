@@ -18,14 +18,18 @@ def load_data(file_path):
     if not os.path.exists(file_path):
         st.error(f"Không tìm thấy file {file_path}")
         return None
-    df = pd.read_excel(file_path)
+    try:
+        df = pd.read_excel(file_path)
+    except Exception as e:
+        st.error(f"Lỗi khi đọc file Excel: {e}")
+        return None
     return df
 
 
 def aggregate_data(df, group_cols, target_factor):
     """Tính toán KPI target"""
     if "workhour" not in df.columns:
-        st.error("Thiếu cột 'workhour' trong dữ liệu")
+        st.error("❌ Thiếu cột 'workhour' trong dữ liệu")
         return None
 
     grouped = (
@@ -50,7 +54,7 @@ def plot_bar_chart(df, x_col, y_col, title="Bar Chart"):
 def plot_hierarchical_chart(df: pd.DataFrame, group_cols: list, value_col: str = "suggested_target"):
     """Biểu đồ phân tầng (treemap)"""
     if not all(col in df.columns for col in group_cols):
-        st.warning("Thiếu cột cần thiết để vẽ biểu đồ phân tầng.")
+        st.warning("⚠️ Thiếu cột cần thiết để vẽ biểu đồ phân tầng.")
         return None
 
     fig = px.treemap(
@@ -77,43 +81,40 @@ def main():
     else:
         st.sidebar.warning("⚠️ Không tìm thấy file triac_logo.png")
 
-    st.title("KPI / Target Generator from Timesheet History")
+    st.title("📊 KPI / Target Generator from Timesheet History")
 
     # Load data
     df = load_data(EXCEL_FILE)
     if df is None:
         return
 
-    st.subheader("Dữ liệu gốc")
+    st.subheader("📄 Dữ liệu gốc (5 dòng đầu)")
     st.dataframe(df.head())
 
     # Chọn cột group
     all_cols = list(df.columns)
-    # Chọn cột group
-    all_cols = list(df.columns)
-
     default_group = "project" if "project" in all_cols else None
 
     group_cols = st.multiselect(
-        "Chọn các cột để phân tích (group by):",
+        "👉 Chọn các cột để phân tích (group by):",
         all_cols,
         default=[default_group] if default_group else []
     )
 
-    target_factor = st.slider("Target factor (tỉ lệ so với giờ công)", 0.5, 2.0, 1.0, 0.1)
+    target_factor = st.slider("🎯 Target factor (tỉ lệ so với giờ công)", 0.5, 2.0, 1.0, 0.1)
 
     if group_cols:
         agg = aggregate_data(df, group_cols, target_factor)
         if agg is not None:
-            st.subheader("Kết quả tổng hợp")
+            st.subheader("📊 Kết quả tổng hợp")
             st.dataframe(agg)
 
             # Bar chart
-            st.header("Biểu đồ cột")
+            st.header("📈 Biểu đồ cột")
             plot_bar_chart(agg, x_col=group_cols[0], y_col="suggested_target", title="Target theo nhóm")
 
             # Hierarchical chart
-            st.header("Biểu đồ phân tầng (Hierarchical)")
+            st.header("🌳 Biểu đồ phân tầng (Hierarchical)")
             hier_fig = plot_hierarchical_chart(agg, group_cols, value_col="suggested_target")
             if hier_fig:
                 st.plotly_chart(hier_fig, use_container_width=True)
