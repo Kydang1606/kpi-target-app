@@ -89,7 +89,17 @@ def main():
 
     # Chọn cột group
     all_cols = list(df.columns)
-    group_cols = st.multiselect("Chọn các cột để phân tích (group by):", options=all_cols, default=["project", "team"])
+    # Chọn cột group
+    all_cols = list(df.columns)
+
+    default_group = "project" if "project" in all_cols else None
+
+    group_cols = st.multiselect(
+        "Chọn các cột để phân tích (group by):",
+        all_cols,
+        default=[default_group] if default_group else []
+    )
+
     target_factor = st.slider("Target factor (tỉ lệ so với giờ công)", 0.5, 2.0, 1.0, 0.1)
 
     if group_cols:
